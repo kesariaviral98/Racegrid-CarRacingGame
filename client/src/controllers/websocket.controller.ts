@@ -60,6 +60,10 @@ type MessageHandler = (message: ServerMessage) => void;
 let socket: WebSocket | null = null;
 const messageHandlers: Set<MessageHandler> = new Set();
 
+/**
+ * Opens a WebSocket connection to the game server and sends JOIN_ROOM.
+ * No-ops if a connection is already open.
+ */
 export const connectWebSocket = (roomId: string, userId: string, tenantId: string, username: string): void => {
   if (socket !== null && socket.readyState === WebSocket.OPEN) {
     return;
@@ -92,6 +96,7 @@ export const connectWebSocket = (roomId: string, userId: string, tenantId: strin
   };
 };
 
+/** Gracefully closes the socket. Safe to call even if already disconnected. */
 export const disconnectWebSocket = (): void => {
   if (socket !== null) {
     socket.close();
@@ -109,10 +114,12 @@ export const sendRaceReady = (): void => {
   sendMessage(message);
 };
 
+/** Registers a handler to receive all incoming server messages. */
 export const addMessageHandler = (handler: MessageHandler): void => {
   messageHandlers.add(handler);
 };
 
+/** Deregisters a previously added handler. */
 export const removeMessageHandler = (handler: MessageHandler): void => {
   messageHandlers.delete(handler);
 };
