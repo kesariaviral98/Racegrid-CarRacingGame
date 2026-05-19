@@ -13,6 +13,11 @@ const COIN_COUNT = 75;
 const COIN_Z_SPACING = 60;
 const OBSTACLE_COUNT = 22;
 
+/**
+ * Generates the fixed set of coins for a new room.
+ * Positions are deterministic (same seed every run) so coin layout is consistent.
+ * 2/3 of coins are centre-weighted to encourage natural racing lines.
+ */
 const generateCoins = (): CoinInternal[] => {
   return Array.from({ length: COIN_COUNT }, (_, i): CoinInternal => {
     // Bias toward center of road: 2/3 of coins near centre, 1/3 wide
@@ -27,6 +32,11 @@ const generateCoins = (): CoinInternal[] => {
   });
 };
 
+/**
+ * Generates the fixed set of obstacles for a new room using an LCG.
+ * Obstacles are spread across the full track with a minimum gap of 150 units
+ * and uniformly randomised x positions across the road width.
+ */
 const generateObstacles = (): ObstacleInternal[] => {
   const types = ['rock', 'barrel', 'cone'] as const;
 
@@ -58,6 +68,10 @@ const roomCoins = new Map<string, CoinInternal[]>();
 const roomObstacles = new Map<string, ObstacleInternal[]>();
 const roomBots = new Map<string, BotState | null>();
 
+/**
+ * Returns an existing room or creates a fresh one with generated coins and obstacles.
+ * All in-memory maps are initialised together to keep room state consistent.
+ */
 export const getOrCreateRoom = (roomId: string, tenantId: string): GameState => {
   const existing = rooms.get(roomId);
 
