@@ -27,6 +27,11 @@ const broadcastToRoom = (roomId: string, message: ServerMessage): void => {
   });
 };
 
+/**
+ * Attaches message and close listeners to a fresh WebSocket connection.
+ * Handles JOIN_ROOM, PLAYER_INPUT, and RACE_READY messages.
+ * Cleans up player state on disconnect.
+ */
 export const handleConnection = (ws: WebSocket): void => {
   let connectedPlayer: ConnectedPlayer | null = null;
 
@@ -58,6 +63,10 @@ export const handleConnection = (ws: WebSocket): void => {
   });
 };
 
+/**
+ * Starts the game loop for a room once all present players have sent RACE_READY.
+ * A short delay allows any last-moment joiners to connect before the countdown begins.
+ */
 const maybeStartLoop = (roomId: string): void => {
   const room = getRoomState(roomId);
   if (room === undefined) {
@@ -75,6 +84,7 @@ const maybeStartLoop = (roomId: string): void => {
   }, READY_START_DELAY_MS);
 };
 
+/** Registers a new player in the room, assigns a team, and sends ROOM_JOINED. */
 const handleJoinRoom = (ws: WebSocket, roomId: string, userId: string, tenantId: string, username: string): ConnectedPlayer => {
   const room = getOrCreateRoom(roomId, tenantId);
 
@@ -132,6 +142,7 @@ const handleJoinRoom = (ws: WebSocket, roomId: string, userId: string, tenantId:
   return player;
 };
 
+/** Removes the player from the room and notifies remaining players. */
 const handleDisconnect = (player: ConnectedPlayer): void => {
   removePlayerFromRoom(player.roomId, player.userId);
 
