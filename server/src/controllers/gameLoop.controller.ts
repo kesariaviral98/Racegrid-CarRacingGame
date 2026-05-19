@@ -55,6 +55,11 @@ const broadcastToRoom = (roomId: string, message: ServerMessage): void => {
   });
 };
 
+/**
+ * Starts the 3-second countdown for a room then hands off to the main game loop.
+ * Spawns a bot opponent when only one human player is present.
+ * Safe to call multiple times — no-ops if the room loop is already running.
+ */
 export const startGameLoop = (roomId: string): void => {
   if (activeRooms.has(roomId)) return;
   const room = getRoomState(roomId);
@@ -86,6 +91,12 @@ export const startGameLoop = (roomId: string): void => {
   }, 1000);
 };
 
+/**
+ * Core authoritative game loop running at TICK_RATE_HZ (20 Hz).
+ * Each tick: advances physics for all players and the bot, checks collisions,
+ * updates positions, then broadcasts GAME_STATE to every connected client.
+ * Stops automatically when the room status leaves 'racing'.
+ */
 const runGameLoop = (roomId: string): void => {
   const interval = setInterval((): void => {
     const room = getRoomState(roomId);
@@ -173,6 +184,11 @@ const runGameLoop = (roomId: string): void => {
   }, TICK_INTERVAL_MS);
 };
 
+/**
+ * Advances a single player's physics state by dt seconds.
+ * During stun the car decelerates gently so it rolls clear of the collision zone.
+ * Input is ignored while stunTimeMs > 0.
+ */
 const updatePlayerPhysics = (player: ConnectedPlayer, dt: number): void => {
   const s = player.state;
 
@@ -209,6 +225,7 @@ const updatePlayerPhysics = (player: ConnectedPlayer, dt: number): void => {
   s.z += s.speed * dt;
 };
 
+/** Records a lap crossing and stamps finishTimeMs on the final lap. */
 const checkLapCompletion = (player: ConnectedPlayer, raceTimeMs: number): void => {
   const s = player.state;
   const nextZ = (s.lap + 1) * TRACK_LENGTH;
@@ -253,6 +270,11 @@ const checkObstacleCollision = (player: ConnectedPlayer, obstacles: ObstacleInte
   }
 };
 
+/**
+ * Detects and resolves car-to-car collisions between all human players and the bot.
+ * The car that is *ahead* (higher z) gets stunned when rammed from behind;
+ * the ramming car loses speed proportionally.
+ */
 const applyCarCollisions = (players: Map<string, ConnectedPlayer>, bot: BotState | null): void => {
   const humans = Array.from(players.values()).filter((p) => p.state.connected);
 
@@ -389,6 +411,11 @@ const updatePositions = (players: Map<string, ConnectedPlayer>, bot: BotState | 
   entries.forEach((e, i) => e.setPos(i + 1));
 };
 
+/**
+ * Finalises the race: sets room status, ranks all participants, broadcasts
+ * RACE_FINISHED with results, and persists the match to Supabase.
+ * Bot results are included in the broadcast but excluded from the DB write.
+ */
 const finishRace = (roomId: string, players: Map<string, ConnectedPlayer>, bot: BotState | null): void => {
   setRoomStatus(roomId, 'finished');
   activeRooms.delete(roomId);
